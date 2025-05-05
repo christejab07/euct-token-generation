@@ -23,6 +23,4 @@ public class TokenDTO {
     private LocalDateTime purchasedDate;
 
     private Long amount;
-
-    private String formattedToken;
 }
