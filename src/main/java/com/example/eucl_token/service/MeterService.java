@@ -7,20 +7,27 @@ import com.example.eucl_token.exception.CustomException;
 import com.example.eucl_token.repository.MeterRepository;
 import com.example.eucl_token.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class MeterService {
+    private static final Logger logger = LoggerFactory.getLogger(MeterService.class);
     private final MeterRepository meterRepository;
     private final UserRepository userRepository;
 
     public MeterDTO registerMeter(MeterDTO meterDTO) {
         if (meterRepository.existsByMeterNumber(meterDTO.getMeterNumber())) {
+            logger.warn("Registration failed: Meter number {} already exists", meterDTO.getMeterNumber());
             throw new CustomException("Meter number already exists");
         }
         User user = userRepository.findById(meterDTO.getUserId())
-                .orElseThrow(() -> new CustomException("User not found"));
+                .orElseThrow(() -> {
+                    logger.warn(("user with id {} not found"), meterDTO.getUserId());
+                    return new CustomException("User not found");
+                });
         Meter meter = new Meter();
         meter.setMeterNumber(meterDTO.getMeterNumber());
         meter.setUser(user);
@@ -30,6 +37,7 @@ public class MeterService {
         responseDTO.setId(savedMeter.getId());
         responseDTO.setMeterNumber(savedMeter.getMeterNumber());
         responseDTO.setUserId(savedMeter.getUser().getId());
+        logger.info("Meter registered successfully with number: {}", savedMeter.getMeterNumber());
         return responseDTO;
     }
 }

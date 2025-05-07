@@ -7,6 +7,8 @@ import com.example.eucl_token.repository.MeterRepository;
 import com.example.eucl_token.repository.TokenRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,12 +17,14 @@ import java.util.Random;
 @Service
 @RequiredArgsConstructor
 public class TokenService {
+    private static final Logger logger = LoggerFactory.getLogger(TokenService.class);
     @Getter
     private final TokenRepository tokenRepository;
     private final MeterRepository meterRepository;
 
     public TokenDTO purchaseToken(TokenDTO tokenDTO) {
         if (!meterRepository.existsByMeterNumber(tokenDTO.getMeterNumber())) {
+            logger.warn("Purchase failed: Meter number {} not found", tokenDTO.getMeterNumber());
             throw new CustomException("Invalid meter number");
         }
         Long amount = tokenDTO.getAmount();
@@ -54,7 +58,15 @@ public class TokenService {
     }
 
     private TokenDTO getTokenDTO(Token foundToken) {
-        return getTokenDTO(foundToken);
+        TokenDTO responseDTO = new TokenDTO();
+        responseDTO.setId(foundToken.getId());
+        responseDTO.setMeterNumber(foundToken.getMeterNumber());
+        responseDTO.setAmount(foundToken.getAmount());
+        responseDTO.setToken(foundToken.getToken());
+        responseDTO.setTokenStatus(foundToken.getTokenStatus().name());
+        responseDTO.setTokenValueDays(foundToken.getTokenValueDays());
+        responseDTO.setPurchasedDate(foundToken.getPurchasedDate());
+        return responseDTO;
     }
 
     private String generateUniqueToken() {
