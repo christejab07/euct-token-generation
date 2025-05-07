@@ -115,13 +115,13 @@ This is a Spring Boot application for managing prepaid electricity tokens, inclu
     curl -X POST http://localhost:8080/api/meters/register \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer <your-jwt-token>" \
-    -d '{"meterNumber":"ABC123","userId":1}'
+    -d '{"meterNumber":"123456","userId":1}'
     ```
     **Response (HTTP 200):**
     ```json
     {
       "id": 1,
-      "meterNumber": "ABC123",
+      "meterNumber": "123456",
       "userId": 1
     }
     ```
@@ -131,14 +131,14 @@ This is a Spring Boot application for managing prepaid electricity tokens, inclu
     curl -X POST http://localhost:8080/api/tokens/purchase \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer <your-jwt-token>" \
-    -d '{"meterNumber":"ABC123","amount":100.0}'
+    -d '{"meterNumber":"123456","amount":100.0}'
     ```
     **Response (HTTP 200):**
     ```json
     {
       "id": 1,
       "tokenCode": "1234567890123456",
-      "meterNumber": "ABC123",
+      "meterNumber": "123456",
       "amount": 100.0,
       "purchaseDate": "2025-05-07T12:00:00",
       "expiryDate": "2025-06-06T12:00:00"
