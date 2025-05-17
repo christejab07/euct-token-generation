@@ -31,6 +31,9 @@ public class Token {
     private LocalDateTime purchasedDate;
 
     @Column(nullable = false)
+    private LocalDateTime expiryDate;
+
+    @Column(nullable = false)
     private Long amount;
 
     public enum TokenStatus {

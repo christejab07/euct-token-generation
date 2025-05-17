@@ -11,37 +11,59 @@ import com.example.eucl_token.repository.NotificationRepository;
 import com.example.eucl_token.repository.TokenRepository;
 import com.example.eucl_token.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
-    private final NotificationRepository notificationRepository;
+    private static final Logger logger = LoggerFactory.getLogger(NotificationService.class);
     private final TokenRepository tokenRepository;
-    private final UserRepository userRepository;
     private final MeterRepository meterRepository;
+    private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
     public void checkExpiringTokens() {
+        logger.debug("Checking for expiring tokens and updating token statuses");
         List<Token> tokens = tokenRepository.findAll();
         LocalDateTime now = LocalDateTime.now();
+
         for (Token token : tokens) {
-            LocalDateTime expiryDate = token.getPurchasedDate().plusDays(token.getTokenValueDays());
-            long hoursUntilExpiry = java.time.Duration.between(now, expiryDate).toHours();
-            if (hoursUntilExpiry == 5 && token.getTokenStatus() == Token.TokenStatus.NEW) {
-                Meter meter = meterRepository.findByMeterNumber(token.getMeterNumber())
-                        .stream()
-                        .findFirst()
-                        .orElseThrow(() -> new CustomException("Meter not found"));
+            // Update token statuses
+            long daysSincePurchase = Duration.between(token.getPurchasedDate(), now).toDays();
+            boolean isExpired = now.isAfter(token.getExpiryDate());
+
+            if (isExpired && token.getTokenStatus() != Token.TokenStatus.EXPIRED) {
+                token.setTokenStatus(Token.TokenStatus.EXPIRED);
+                tokenRepository.save(token);
+                logger.info("Token ID: {} status updated to EXPIRED", token.getId());
+            } else if (daysSincePurchase >= 1 && token.getTokenStatus() == Token.TokenStatus.NEW) {
+                token.setTokenStatus(Token.TokenStatus.USED);
+                tokenRepository.save(token);
+                logger.info("Token ID: {} status updated to USED", token.getId());
+            }
+
+            // Check for expiring tokens
+            long hoursUntilExpiry = Duration.between(now, token.getExpiryDate()).toHours();
+            // Notify if 4.5 to 5.5 hours remain to account for manual triggering
+            if (hoursUntilExpiry >= 4 && hoursUntilExpiry <= 5 && token.getTokenStatus() != Token.TokenStatus.EXPIRED) {
+                String meterNumber = token.getMeterNumber();
+                Meter meter = meterRepository.findByMeterNumber(meterNumber).get(0);
                 User user = userRepository.findById(meter.getUser().getId())
-                        .orElseThrow(() -> new CustomException("User not found"));
+                        .orElseThrow(() -> {
+                            logger.warn("User not found for user ID: {}", meter.getUser().getId());
+                            return new CustomException("User not found");
+                        });
                 String message = String.format(
-                        "Dear %s, REG is pleased to remind you that the token in the %s is going to expire in 5 hours. Please purchase a new token.",
-                        user.getName(), token.getMeterNumber());
+                        "Dear %s, REG is pleased to remind you that the token for meter %s is going to expire in less than 5 hours. Please purchase a new token.",
+                        user.getName(), meter.getMeterNumber());
                 Notification notification = new Notification();
-                notification.setMeterNumber(token.getMeterNumber());
+                notification.setMeterNumber(meter.getMeterNumber());
                 notification.setMessage(message);
                 notification.setIssuedDate(LocalDateTime.now());
                 Notification savedNotification = notificationRepository.save(notification);
@@ -51,6 +73,7 @@ public class NotificationService {
                 notificationDTO.setMeterNumber(savedNotification.getMeterNumber());
                 notificationDTO.setMessage(savedNotification.getMessage());
                 notificationDTO.setIssuedDate(savedNotification.getIssuedDate());
+                logger.info("Notification created for token ID: {} with 5 hours until expiry", token.getId());
                 // Email notification logic to be implemented later
             }
         }

@@ -42,6 +42,7 @@ public class TokenService {
         token.setTokenStatus(Token.TokenStatus.NEW);
         token.setTokenValueDays(days);
         token.setPurchasedDate(LocalDateTime.now());
+        token.setExpiryDate(LocalDateTime.now().plusDays(days));
         token.setAmount(amount);
         Token savedToken = tokenRepository.save(token);
 
@@ -66,6 +67,7 @@ public class TokenService {
         responseDTO.setTokenStatus(foundToken.getTokenStatus().name());
         responseDTO.setTokenValueDays(foundToken.getTokenValueDays());
         responseDTO.setPurchasedDate(foundToken.getPurchasedDate());
+        responseDTO.setExpiryDate(foundToken.getExpiryDate());
         return responseDTO;
     }
 

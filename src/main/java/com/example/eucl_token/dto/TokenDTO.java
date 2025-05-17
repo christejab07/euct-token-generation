@@ -22,5 +22,7 @@ public class TokenDTO {
 
     private LocalDateTime purchasedDate;
 
+    private LocalDateTime expiryDate;
+
     private Long amount;
 }
